@@ -1,0 +1,46 @@
+name: Generate docs HTML (dev)
+
+permissions:
+  contents: read
+
+on:
+  # Exercise the full multi-version publish build without publishing PR content.
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/public/**"
+      - ".github/workflows/docs-generate-html.yml"
+      - ".github/workflows/docs-publish-dev.yml"
+      - ".github/scripts/docs-publish-dev*"
+  # Start manually until the dev destination and central-publisher access are confirmed.
+  workflow_dispatch:
+
+jobs:
+  publish-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - run: node --test .github/scripts/docs-publish-dev.test.cjs
+
+  docs-build:
+    uses: neo4j/docs-tools/.github/workflows/reusable-docs-build.yml@v2
+    with:
+      docs-dir: docs/public
+      package-script: verify:publish
+      publish-env: dev
+      antora-cli-options: --log-failure-level=warn
+      retain-artifacts: 14
+    secrets:
+      DOCS_NAV_USER_AGENT: ${{ secrets.DOCS_NAV_USER_AGENT }}
+      DOCS_TESTING_CRAWLER: ${{ secrets.DOCS_TESTING_CRAWLER }}
+
+  docs-verify:
+    needs: docs-build
+    uses: neo4j/docs-tools/.github/workflows/reusable-docs-verify.yml@v2
+    with:
+      failOnWarnings: true
