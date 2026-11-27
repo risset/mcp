@@ -3,7 +3,9 @@
 :page-aliases: usage.adoc, tls-setup.adoc
 :description: This section describes Neo4j MCP.
 
-NOTE: Hosted documentation preview update test v2 in risset/mcp. Do not merge this test change.
+NOTE: Hosted documentation preview failure test must not be published.
+
+xref:nonexistent-hosted-preview-failure-test.adoc[Deliberately broken preview test]
 
 Neo4j MCP implements the Model Context Protocol (MCP), an open standard that lets applications connect to external data sources and tools.
 It bridges any MCP-compatible client and your Neo4j instance, giving that client direct, structured access to your graph database.
