@@ -1,0 +1,65 @@
+name: Documentation Teardown
+
+on:
+  pull_request_target:
+    branches:
+      - main
+      - "*.x"
+    types: [closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  teardown:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: docs-preview-${{ github.repository }}-${{ github.event.pull_request.head.ref }}
+      cancel-in-progress: false
+    steps:
+      # pull_request_target is privileged: use only trusted default-branch scripts.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Check closed PR has a preview
+        id: prepare
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            await require('./.github/scripts/docs-preview.cjs').run({
+              github, context, core, mode: 'teardown'
+            });
+      - name: Install pinned Surge CLI
+        if: steps.prepare.outputs.allowed == 'true'
+        run: npm install --prefix "$RUNNER_TEMP/surge" --ignore-scripts --no-audit --no-fund surge@0.58.0
+      - name: Recheck PR is still closed
+        if: steps.prepare.outputs.allowed == 'true'
+        id: check
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            await require('./.github/scripts/docs-preview.cjs').run({
+              github, context, core, mode: 'teardown'
+            });
+      - name: Remove preview if it exists
+        if: steps.check.outputs.allowed == 'true'
+        env:
+          SURGE_TOKEN: ${{ secrets.DOCS_SURGE_TOKEN }}
+          DOMAIN: ${{ steps.check.outputs.domain }}
+        run: bash .github/scripts/docs-preview-remove.sh
+      - name: Update preview comment
+        if: steps.check.outputs.allowed == 'true'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            await require('./.github/scripts/docs-preview.cjs').run({
+              github, context, core, mode: 'removed'
+            });

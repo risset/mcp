@@ -1,0 +1,61 @@
+= Quickstart
+
+== MCP for Aura
+
+Before connecting, enable *Tool authentication* in *Security* for your organization in the Aura console.
+See xref:mcp-for-aura.adoc#enable-tool-authentication[Enable tool authentication] for details.
+
+First, retrieve your instance's MCP server URL:
+
+. Under **Instances** in the left side navigation of the Aura Console, retrieve the ID of the Aura instance you would like to use with Neo4j MCP.
+. Substitute the ID in the following template to get your MCP server URL: `\https://<INSTANCE_ID>.mcp-instances.neo4j.io`.
+
+For a visual walkthrough, or to copy the URL directly from the instance details, see xref:mcp-for-aura.adoc#find-your-mcp-server-url[Find your MCP server URL].
+
+Then add Neo4j MCP to your client's MCP configuration.
+For example, in VS Code, create or edit `mcp.json`:
+
+```json
+{
+  "servers": {
+    "neo4j-mcp": {
+      "type": "http",
+      "url": "https://<instance-id>.mcp-instances.neo4j.io"
+    }
+  }
+}
+```
+
+See xref:client-configuration.adoc[] for other client-specific configuration.
+
+
+== Self hosted
+
+Install link:https://docs.astral.sh/uv/getting-started/installation/[uv] to make `uvx` available on your PATH.
+
+Add Neo4j MCP to your client's MCP configuration. For example, in VS Code, create or edit `mcp.json`:
+
+```json
+{
+  "servers": {
+    "neo4j": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["neo4j-mcp-server"],
+      "env": {
+        "NEO4J_MCP_URI": "bolt://localhost:7687",
+        "NEO4J_MCP_USERNAME": "neo4j",
+        "NEO4J_MCP_PASSWORD": "password",
+        "NEO4J_MCP_DATABASE": "neo4j",
+        "NEO4J_MCP_READ_ONLY": "true",
+        "NEO4J_MCP_TELEMETRY": "false",
+        "NEO4J_MCP_LOG_LEVEL": "info",
+        "NEO4J_MCP_LOG_FORMAT": "text",
+        "NEO4J_MCP_SCHEMA_SAMPLE_SIZE": "100"
+      }
+    }
+  }
+}
+```
+
+See xref:client-configuration.adoc[] for other client-specific configuration and xref:configuration.adoc[] for the full list of configuration options.

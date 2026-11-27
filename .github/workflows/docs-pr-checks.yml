@@ -1,0 +1,46 @@
+name: Verify docs PR
+
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  pull_request:
+    branches:
+      - main
+      - "*.x"
+    paths:
+      - "docs/public/**"
+      - ".github/workflows/docs-*.yml"
+      - ".github/scripts/docs-preview*"
+      - ".github/scripts/docs_preview*"
+      - ".github/scripts/test_docs_preview*"
+  workflow_dispatch:
+
+jobs:
+  preview-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - run: node --test .github/scripts/docs-preview.test.cjs
+      - run: python3 -m unittest discover -s .github/scripts -p 'test_docs_preview_archive.py'
+
+  docs-build:
+    uses: neo4j/docs-tools/.github/workflows/reusable-docs-build.yml@v2
+    with:
+      docs-dir: docs/public
+      package-script: verify:preview
+      antora-cli-options: --log-failure-level=warn
+      deploy-id: ${{ github.event.number || 0 }}
+      retain-artifacts: 14
+
+  docs-verify:
+    needs: docs-build
+    uses: neo4j/docs-tools/.github/workflows/reusable-docs-verify.yml@v2
+    with:
+      failOnWarnings: true

@@ -1,0 +1,23 @@
+[[requirement-checks]]
+= Requirement checks
+:page-aliases: startup-checks.adoc
+
+The server checks the database requirements when it processes the MCP handshake request.
+This is the `initialize` or `server/discover` request, depending on the protocol version used by clients.
+These checks are not startup pre-flight checks.
+
+== Required checks
+
+During the handshake, the server verifies:
+
+* A valid connection to the target Neo4j instance.
+* The ability to execute queries.
+* The presence of the APOC plugin, including its `meta` component.
+
+If the database is unreachable, the configuration is invalid, or APOC is missing, the handshake request fails with a descriptive error.
+For a missing APOC `meta` component, install the APOC plugin and ensure it includes the `meta` component.
+
+The checks apply to both transport modes.
+In STDIO mode, the URI, credentials, and database are configured on the server.
+In HTTP mode, the URI, credentials, and database are selected for each request.
+See xref:configuration.adoc#transport-modes[Transport modes] and xref:http-mode.adoc[].
