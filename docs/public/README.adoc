@@ -34,6 +34,7 @@ These commands replace the JSON build log at `build/log/log.json` and fail on wa
 The publish playbook builds version 2 from this repository and version 1 from the `1.x` branch of `neo4j/docs-mcp`.
 Both builds download the Neo4j UI bundle; the publish build also requires access to GitHub for the legacy content.
 Running the publish build does not deploy or publish the site.
+For the dev-only CI publication rollout and its access prerequisites, see link:../DEV_PUBLISHING.md[Dev publishing].
 
 == Hosted pull request previews
 

@@ -1,0 +1,63 @@
+name: Publish docs to dev
+
+on:
+  workflow_run:
+    workflows: ["Generate docs HTML (dev)"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  publish:
+    # Forks and PRs can build artifacts, but cannot dispatch to the central publisher.
+    if: >-
+      github.repository == 'neo4j/mcp' &&
+      vars.DOCS_DEV_PUBLISH_ENABLED == 'true' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'workflow_dispatch' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: dev
+    concurrency:
+      group: docs-publish-dev
+      cancel-in-progress: false
+    steps:
+      # Dispatch only from trusted default-branch code, never from the built ref.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - name: Validate completed build and prepare dev-only payload
+        id: payload
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          DOCS_DEV_PUBLISH_ENABLED: ${{ vars.DOCS_DEV_PUBLISH_ENABLED }}
+        with:
+          script: |
+            await require('./.github/scripts/docs-publish-dev.cjs')({
+              github, context, core, enabled: process.env.DOCS_DEV_PUBLISH_ENABLED
+            });
+      - name: Dispatch verified HTML to the central dev publisher
+        if: steps.payload.outputs.allowed == 'true'
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4
+        with:
+          token: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          repository: neo4j/docs-publish
+          event-type: publish-html
+          client-payload: ${{ steps.payload.outputs.payload }}
+      - name: Record dispatch
+        if: steps.payload.outputs.allowed == 'true'
+        env:
+          SOURCE_RUN: ${{ github.event.workflow_run.html_url }}
+        run: |
+          {
+            echo '## Dev publication requested'
+            printf 'Source build: %s\n\n' "$SOURCE_RUN"
+            echo 'A successful dispatch is not confirmation of publication.'
+            echo 'Check the Publish documentation workflow in neo4j/docs-publish for the result and destination URL.'
+          } >> "$GITHUB_STEP_SUMMARY"
