@@ -1,0 +1,142 @@
+= HTTP mode
+:description: Configure and call Neo4j MCP over HTTP.
+
+HTTP mode is stateless and multi-tenant.
+The database is selected in the request URL, and the Neo4j URI and credentials are supplied with each request.
+
+== Endpoint
+
+Send MCP requests to:
+
+[source,http]
+----
+POST /db/{databaseName}/mcp
+----
+
+Trailing slashes are tolerated.
+Replace `\{databaseName\}` with the name of the Neo4j database you want to connect to.
+
+See the xref:#_http_errors[HTTP errors] section for the response to invalid paths, methods, and database names.
+
+== Server configuration
+
+Set the transport mode to HTTP:
+
+[source,bash]
+----
+export NEO4J_MCP_TRANSPORT_MODE="http"
+neo4j-mcp
+----
+
+Do not set any of the following options in HTTP mode:
+
+* `NEO4J_MCP_URI` or `--uri`
+* `NEO4J_MCP_USERNAME` or `--username`
+* `NEO4J_MCP_PASSWORD` or `--password`
+* `NEO4J_MCP_DATABASE` or `--database`
+
+The URI and credentials are provided per request.
+The database is selected by the URL path.
+The server refuses to start if these options are set.
+
+== Required request headers
+
+Each request must include the following headers.
+
+=== `X-Neo4j-MCP-URI`
+
+Set `X-Neo4j-MCP-URI` to the Neo4j instance that the request should use.
+The URI must use one of these schemes:
+
+* `bolt`
+* `bolt+s`
+* `bolt+ssc`
+* `neo4j`
+* `neo4j+s`
+* `neo4j+ssc`
+
+If the header is missing, the server returns `400`.
+The header is included in CORS `Access-Control-Allow-Headers`.
+Passwords in Bolt URIs are redacted from error messages.
+
+=== Authentication
+
+Supply credentials with basic authentication or a bearer token in the `Authorization` header.
+The header name can be changed with `NEO4J_MCP_HTTP_AUTH_HEADER_NAME` or `--http-auth-header-name`.
+See xref:authentication.adoc[] for authentication details.
+
+If the authentication header is missing, the server returns `401`.
+You can selectively bypass authentication for `ping` with the server option documented in xref:http-configuration.adoc[HTTP configuration].
+
+== Optional request headers
+
+These headers narrow the server's configured tool set or timeout for a single request.
+They can only narrow the server configuration, never widen it.
+See xref:tools.adoc#_tool_filtering[Tool filtering] for the precedence model.
+
+=== `X-Neo4j-MCP-ReadOnly`
+
+Set this header to `true` or `false`, without regard to letter case.
+An invalid or duplicated header returns `400`.
+
+When `true`, the request can use only the read-only tools in the configured set (`get-schema`, `read-cypher`, and `list-gds-procedures` when enabled).
+`false` is a no-op: it does not re-enable tools disabled at startup.
+
+=== `X-Neo4j-MCP-Tools`
+
+Set this header to a comma-separated list of tool names.
+
+Only tools from the server's configured set are advertised.
+Naming a valid tool that was excluded at startup advertises nothing; calling it fails with a "tool not found" error.
+
+When both headers are present, both apply.
+On `tools/call`, the read-only guard runs first: a call that violates both filters returns the dedicated read-only guard error.
+
+[[request-timeout-header]]
+=== `X-Neo4j-MCP-Request-Timeout`
+
+Set this header to a duration such as `45s`, `5m`, or `1m30s` to apply a lower timeout limit to one request.
+The value must not exceed the server limit configured by `NEO4J_MCP_REQUEST_TIMEOUT` or `--request-timeout`.
+Values above the server limit, non-positive values, malformed values, or duplicated headers return `400`.
+See xref:http-configuration.adoc#request-timeout[Request timeout].
+
+== Example request
+
+The following request selects the `neo4j` database and a Neo4j instance for the request:
+
+[source,http]
+----
+POST /db/neo4j/mcp HTTP/1.1
+Host: localhost
+Content-Type: application/json
+Accept: application/json, text/event-stream
+X-Neo4j-MCP-URI: bolt://localhost:7687
+Authorization: Basic BASE64_ENCODED_CREDENTIALS
+X-Neo4j-MCP-ReadOnly: true
+X-Neo4j-MCP-Tools: get-schema,read-cypher
+X-Neo4j-MCP-Request-Timeout: 45s
+
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+----
+
+== HTTP errors
+
+[cols="1,3", options="header"]
+|===
+| Status | Condition
+
+| `400`
+| Invalid database name, missing or invalid `X-Neo4j-MCP-URI`, invalid or duplicated filtering or timeout header, invalid request configuration, or an `Accept` header that does not include both `application/json` and `text/event-stream`.
+
+| `401`
+| Authentication is missing or invalid, unless authentication has been explicitly disabled for the applicable request type.
+
+| `404`
+| The request path does not match `/db/\{databaseName\}/mcp`.
+
+| `405`
+| The HTTP method is not `POST` or `OPTIONS`.
+|===
+
+Requirement checks for connectivity, query execution, and APOC run when the MCP handshake request (`initialize` or `server/discover`) is processed.
+See xref:requirement-checks.adoc[].

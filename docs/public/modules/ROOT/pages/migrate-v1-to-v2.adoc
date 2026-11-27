@@ -1,0 +1,265 @@
+= Migrate from v1 to v2
+:description: Migrate a Neo4j MCP server from v1 to v2.
+
+Neo4j MCP v2 includes breaking changes to configuration, HTTP requests, and requirement checks.
+The environment variables and CLI flags removed in v2, together with the v1 behaviors described below, are no longer supported.
+
+== Breaking changes
+
+=== Configuration names changed
+
+In v2, environment variables use the `NEO4J_MCP_` prefix instead of `NEO4J_` to scope them to Neo4j MCP.
+CLI flags are unscoped and use short names without the `--neo4j-` prefix.
+Use these v2 names in every server configuration and client definition.
+When both are set for the same option, the CLI flag takes precedence over the environment variable.
+
+==== Scoped environment variables
+
+[cols="2,2", options="header"]
+|===
+| v1 (removed) | v2
+
+| `NEO4J_URI`
+| `NEO4J_MCP_URI`
+
+| `NEO4J_USERNAME`
+| `NEO4J_MCP_USERNAME`
+
+| `NEO4J_PASSWORD`
+| `NEO4J_MCP_PASSWORD`
+
+| `NEO4J_DATABASE`
+| `NEO4J_MCP_DATABASE`
+
+| `NEO4J_READ_ONLY`
+| `NEO4J_MCP_READ_ONLY`
+
+| `NEO4J_TELEMETRY`
+| `NEO4J_MCP_TELEMETRY`
+
+| `NEO4J_LOG_LEVEL`
+| `NEO4J_MCP_LOG_LEVEL`
+
+| `NEO4J_LOG_FORMAT`
+| `NEO4J_MCP_LOG_FORMAT`
+
+| `NEO4J_SCHEMA_SAMPLE_SIZE`
+| `NEO4J_MCP_SCHEMA_SAMPLE_SIZE`
+
+| `NEO4J_TRANSPORT_MODE`
+| `NEO4J_MCP_TRANSPORT_MODE`
+
+| `NEO4J_MCP_TRANSPORT`
+| `NEO4J_MCP_TRANSPORT_MODE`
+
+| `NEO4J_HTTP_AUTH_HEADER_NAME`
+| `NEO4J_MCP_HTTP_AUTH_HEADER_NAME`
+
+| `NEO4J_HTTP_ALLOW_UNAUTHENTICATED_PING`
+| `NEO4J_MCP_HTTP_ALLOW_UNAUTHENTICATED_PING`
+|===
+
+==== Unscoped CLI flags
+
+[cols="2,2", options="header"]
+|===
+| v1 (removed) | v2
+
+| `--neo4j-uri`
+| `--uri`
+
+| `--neo4j-username`
+| `--username`
+
+| `--neo4j-password`
+| `--password`
+
+| `--neo4j-database`
+| `--database`
+
+| `--neo4j-read-only`
+| `--read-only`
+
+| `--neo4j-tools`
+| `--tools`
+
+| `--neo4j-telemetry`
+| `--telemetry`
+
+| `--neo4j-schema-sample-size`
+| `--schema-sample-size`
+
+| `--neo4j-transport-mode`
+| `--transport-mode`
+
+| `--neo4j-http-port`
+| `--http-port`
+
+| `--neo4j-http-host`
+| `--http-host`
+
+| `--neo4j-http-allowed-origins`
+| `--http-allowed-origins`
+
+| `--neo4j-http-tls-enabled`
+| `--http-tls-enabled`
+
+| `--neo4j-http-tls-cert-file`
+| `--http-tls-cert-file`
+
+| `--neo4j-http-tls-key-file`
+| `--http-tls-key-file`
+
+| `--neo4j-http-auth-header-name`
+| `--http-auth-header-name`
+
+| `--neo4j-http-allow-unauthenticated-ping`
+| `--http-allow-unauthenticated-ping`
+
+| `--neo4j-request-timeout`
+| `--request-timeout`
+|===
+
+=== Unauthenticated `tools/list` removed
+
+In HTTP mode, `tools/list` now always requires authentication.
+The server verifies GDS availability with a database round-trip when listing tools, so credentials are needed.
+
+The following options no longer exist:
+
+[cols="2,2", options="header"]
+|===
+| Type | Removed
+
+| Environment variable
+| `NEO4J_HTTP_ALLOW_UNAUTHENTICATED_TOOLS_LIST` and `NEO4J_MCP_HTTP_ALLOW_UNAUTHENTICATED_TOOLS_LIST`
+
+| CLI flag
+| `--neo4j-http-allow-unauthenticated-tools-list` and `--http-allow-unauthenticated-tools-list`
+|===
+
+Unauthenticated `ping` (`NEO4J_MCP_HTTP_ALLOW_UNAUTHENTICATED_PING`) is unaffected.
+
+=== HTTP endpoint includes the database
+
+The v1 endpoint was:
+
+[source,bash]
+----
+POST https://example.com/mcp
+----
+
+In v2, include the target database name in the URL.
+Use the following URL format:
+
+[source,bash]
+----
+POST https://example.com/db/{databaseName}/mcp
+----
+
+Replace `databaseName` in this URL with the name of the database you want to connect to.
+For example, the URL for the `neo4j` database is:
+
+[source,bash]
+----
+POST https://example.com/db/neo4j/mcp
+----
+
+Note that:
+
+* Trailing slashes are tolerated.
+* The `/mcp` path no longer exists and returns `404`.
+* Non-`POST` and non-`OPTIONS` methods return `405`.
+* Invalid database names return `400`.
+For example, change an HTTP client configuration from:
+
+[source,json]
+----
+{
+  "type": "http",
+  "url": "https://example.com/mcp"
+}
+----
+
+to:
+
+[source,json]
+----
+{
+  "type": "http",
+  "url": "https://example.com/db/neo4j/mcp"
+}
+----
+
+=== HTTP mode is multi-tenant
+
+In v1, an HTTP server could be configured with a single URI and database at startup.
+In v2, HTTP mode selects the Neo4j instance and database for each request.
+
+Do not set `NEO4J_MCP_URI`, `NEO4J_MCP_USERNAME`, `NEO4J_MCP_PASSWORD`, or `NEO4J_MCP_DATABASE` in HTTP mode.
+The server refuses to start if these environmental variables are set and reports that the URI and credentials must be provided per request, while the database is selected by the URL path.
+
+Every request must include the `X-Neo4j-MCP-URI` header.
+Credentials must be supplied per request using basic authentication or a bearer token.
+The database is selected by the URL path, not by an HTTP header.
+See xref:http-mode.adoc[] for the complete HTTP request reference.
+
+For example:
+
+[source,http]
+----
+POST /db/neo4j/mcp HTTP/1.1
+Host: example.com
+X-Neo4j-MCP-URI: bolt+s://instance.example.com
+Authorization: Basic BASE64_ENCODED_CREDENTIALS
+----
+
+=== STDIO requires an explicit database
+
+The v1 STDIO default database was `neo4j`.
+In v2, set `NEO4J_MCP_DATABASE` or use `--database` explicitly.
+Otherwise startup fails and reports that a database is required for STDIO mode.
+
+For example:
+
+[source,json]
+----
+{
+  "type": "stdio",
+  "command": "neo4j-mcp",
+  "env": {
+    "NEO4J_MCP_URI": "bolt://localhost:7687",
+    "NEO4J_MCP_USERNAME": "neo4j",
+    "NEO4J_MCP_PASSWORD": "password",
+    "NEO4J_MCP_DATABASE": "neo4j"
+  }
+}
+----
+
+=== Requirement checks run at the MCP handshake
+
+In v1, connectivity, query execution, and APOC checks ran when the server started.
+In v2, the server starts without running these checks.
+They run when the MCP handshake request (`initialize` or `server/discover`) is processed instead, so a failure is reported by that request rather than preventing the server from starting.
+The handshake request fails with a descriptive error if the database is unreachable, the configuration is invalid, or APOC is missing.
+APOC must be installed and must include the `meta` component.
+
+GDS is now checked on `tools/list` instead of at startup.
+If `list-gds-procedures` is enabled by default and GDS is not found, the tool is omitted from the tool list.
+If the tool is explicitly requested and GDS is not found, `tools/list` returns an error.
+See xref:requirement-checks.adoc[] and xref:tools.adoc#gds-requirement[GDS requirement].
+
+== Additions
+
+=== Tool filtering
+
+Server-level tool filtering is available with `NEO4J_MCP_TOOLS` or `--tools`.
+Per-request HTTP tool filtering is available with `X-Neo4j-MCP-ReadOnly` and `X-Neo4j-MCP-Tools`.
+See xref:tools.adoc#_tool_filtering[Tool filtering].
+
+=== Request timeout
+
+MCP requests, including tool calls and the handshake, now have a timeout.
+Configure the server limit with `NEO4J_MCP_REQUEST_TIMEOUT` or `--request-timeout`.
+HTTP clients can set `X-Neo4j-MCP-Request-Timeout` to use a lower limit for one request.
+See xref:http-configuration.adoc#request-timeout[Request timeout] and xref:http-mode.adoc[].

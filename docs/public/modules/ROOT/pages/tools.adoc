@@ -1,0 +1,73 @@
+= Tools
+
+Provided tools:
+
+[cols="4*", options="header"]
+|===
+| Tool                 | ReadOnly | Purpose                                        | Notes
+| `get-schema`         | Yes      | Introspect labels, relationship types, property keys | Provide valuable context to the client LLMs.
+| `read-cypher`        | Yes      | Execute arbitrary Cypher (read mode)           | Rejects writes, schema/admin operations, and PROFILE queries.
+| `write-cypher`       | No       | Execute arbitrary Cypher (write mode)          | Caution: LLM-generated queries can cause harm. Use only in development environments. Not exposed when readonly mode is enabled.
+| `list-gds-procedures` | Yes     | List GDS procedures available in the instance  | Enabled by default. Requires GDS; see <<gds-requirement>>.
+|===
+
+== Readonly mode
+
+Enable readonly mode by setting the `NEO4J_MCP_READ_ONLY` environment variable to `true` (for example, `"NEO4J_MCP_READ_ONLY": "true"`).
+Accepted values are `true` or `false` (default: `false`).
+
+You can also override this setting using the `--read-only` CLI flag:
+
+[source, bash]
+----
+neo4j-mcp --uri "bolt://localhost:7687" --username "neo4j" --password "password" --database "neo4j" --read-only true
+----
+
+When enabled, write tools (such as `write-cypher`) are not exposed to clients.
+
+== Tool filtering
+
+By default, clients can see and call all four tools — no configuration needed.
+Optionally, you can restrict the tool list when the server starts and, in HTTP mode, narrow it further for individual requests.
+
+=== Choose tools at startup
+
+To restrict the advertised tools, set `NEO4J_MCP_TOOLS` or the `--tools` flag to a comma-separated list of tool names, for example `--tools 'get-schema,read-cypher'`.
+
+=== Narrow tools per request
+
+In HTTP mode, a request can narrow the startup tool list further.
+Send the `X-Neo4j-MCP-Tools` header with a comma-separated list, or `X-Neo4j-MCP-ReadOnly: true`:
+
+[source, http]
+----
+X-Neo4j-MCP-Tools: read-cypher,write-cypher
+X-Neo4j-MCP-ReadOnly: true
+----
+
+With `--tools 'get-schema,read-cypher,write-cypher'` at startup, this request advertises only `read-cypher`.
+
+=== Rules and precedence
+
+* Filters can only narrow the tool set, never widen it.
+The startup configuration is the ceiling for every request, and headers cannot add tools back.
+* Read-only mode takes precedence over explicit tool selection.
+With `NEO4J_MCP_READ_ONLY=true`, write-capable tools stay disabled even when listed in `NEO4J_MCP_TOOLS` or `--tools`.
+
+See xref:http-mode.adoc#_optional_request_headers[Optional request headers] for header syntax, validation, and error behavior.
+
+== Query classification
+
+Read-only tools, such as `read-cypher`, perform an extra round-trip to the Neo4j database to guarantee read-only operations.
+
+- **Write operations**: `CREATE`, `MERGE`, `DELETE`, `SET`, etc., are treated as non-read queries.
+- **Admin queries**: Commands like `SHOW USERS`, `SHOW DATABASES`, etc., are treated as non-read queries and must use a write-capable tool, such as `write-cypher`.
+- **Profile queries**: `EXPLAIN PROFILE` queries are treated as non-read queries, even if the underlying statement is read-only.
+- **Schema operations**: `CREATE INDEX`, `DROP CONSTRAINT`, etc., are treated as non-read queries.
+
+[[gds-requirement]]
+== GDS requirement
+
+The Graph Data Science (GDS) library is optional and checked on `tools/list`.
+If GDS is not found and no tools have been explicitly requested, the `list-gds-procedures` tool is omitted from the tool list and the other tools remain available.
+If `list-gds-procedures` is explicitly requested (via `NEO4J_MCP_TOOLS` or the `X-Neo4j-MCP-Tools` header) and GDS is not found, `tools/list` returns an error.

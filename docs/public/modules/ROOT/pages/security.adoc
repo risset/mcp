@@ -1,0 +1,4 @@
+= Security
+
+Use a restricted Neo4j user for exploring the database.
+To avoid undesirable operations or even data loss, it is also advisable to review Cypher queries generated with MCP before executing them against a database, especially when it is a production database.

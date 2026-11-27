@@ -1,0 +1,113 @@
+name: Deploy docs preview
+
+on:
+  workflow_run:
+    workflows: ["Verify docs PR"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Same group as teardown. Do not cancel a deployment halfway through upload.
+    concurrency:
+      group: docs-preview-${{ github.repository }}-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: false
+    steps:
+      # Never check out the PR: workflow_run has credentials unavailable to its build.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Check current PR and download its build
+        id: prepare
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            await require('./.github/scripts/docs-preview.cjs').run({
+              github, context, core, mode: 'prepare'
+            });
+      - name: Validate and unpack generated HTML
+        if: steps.prepare.outputs.allowed == 'true'
+        run: python3 .github/scripts/docs_preview_archive.py "$RUNNER_TEMP/docs-preview.zip" "$RUNNER_TEMP/docs-site"
+      - name: Install pinned Surge CLI
+        if: steps.prepare.outputs.allowed == 'true'
+        run: npm install --prefix "$RUNNER_TEMP/surge" --ignore-scripts --no-audit --no-fund surge@0.58.0
+      - name: Recheck PR and mark deployment pending
+        if: steps.prepare.outputs.allowed == 'true'
+        id: pending
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            await require('./.github/scripts/docs-preview.cjs').run({
+              github, context, core, mode: 'pending'
+            });
+      - name: Deploy preview
+        if: steps.pending.outputs.allowed == 'true'
+        env:
+          SURGE_TOKEN: ${{ secrets.DOCS_SURGE_TOKEN }}
+          DOMAIN: ${{ steps.pending.outputs.domain }}
+        run: |
+          test -n "$SURGE_TOKEN"
+          "$RUNNER_TEMP/surge/node_modules/.bin/surge" "$RUNNER_TEMP/docs-site" "$DOMAIN" --token "$SURGE_TOKEN"
+      - name: Update preview comment
+        if: steps.pending.outputs.allowed == 'true'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            await require('./.github/scripts/docs-preview.cjs').run({
+              github, context, core, mode: 'published'
+            });
+      - name: Report failed deployment
+        if: failure() && steps.pending.outputs.allowed == 'true'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            await require('./.github/scripts/docs-preview.cjs').run({
+              github, context, core, mode: 'failed'
+            });
+      # GitHub concurrency keeps only one pending job. A late build can replace a
+      # queued teardown, so every deployment run also reconciles closed PRs.
+      - name: Check whether PR closed during the build or deployment
+        if: always()
+        id: cleanup
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            await require('./.github/scripts/docs-preview.cjs').run({
+              github, context, core, mode: 'teardown'
+            });
+      - name: Install Surge for cleanup if needed
+        if: always() && steps.cleanup.outputs.allowed == 'true'
+        run: |
+          if [ ! -x "$RUNNER_TEMP/surge/node_modules/.bin/surge" ]; then
+            npm install --prefix "$RUNNER_TEMP/surge" --ignore-scripts --no-audit --no-fund surge@0.58.0
+          fi
+      - name: Remove preview for closed PR
+        id: remove-closed
+        if: always() && steps.cleanup.outputs.allowed == 'true'
+        env:
+          SURGE_TOKEN: ${{ secrets.DOCS_SURGE_TOKEN }}
+          DOMAIN: ${{ steps.cleanup.outputs.domain }}
+        run: bash .github/scripts/docs-preview-remove.sh
+      - name: Mark closed PR preview removed
+        if: always() && steps.remove-closed.outcome == 'success'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            await require('./.github/scripts/docs-preview.cjs').run({
+              github, context, core, mode: 'removed'
+            });

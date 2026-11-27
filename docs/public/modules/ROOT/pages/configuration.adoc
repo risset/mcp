@@ -1,0 +1,18 @@
+[[configuration]]
+= Configuration reference
+
+`neo4j-mcp` can be configured with environment variables or command-line flags.
+When both are set for the same option, the command-line flag takes precedence over the environment variable.
+
+
+[[transport-modes]]
+== Transport modes
+
+The server supports two transport modes:
+
+* **STDIO** (default): Standard input/output mode for desktop clients.
+* **HTTP**: Stateless, multi-tenant mode for web clients and shared deployments.
+
+Set the transport mode using `NEO4J_MCP_TRANSPORT_MODE` or `--transport-mode`.
+
+See xref:stdio-configuration.adoc[] and xref:http-configuration.adoc[] for details.

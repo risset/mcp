@@ -1,0 +1,8 @@
+= Known issues
+
+== APOC and the `get-schema` tool in Neo4j 5.26.18
+
+Neo4j 5.26.18 has a bug in APOC that causes the `get-schema` tool to fail.
+This issue is fixed in Neo4j 5.26.19 and above.
+If you're using Neo4j 5.26.18, upgrade to 5.26.19 or later.
+See link:https://github.com/neo4j/mcp/issues/136[MCP issue 136] for details.

@@ -1,0 +1,11 @@
+name: mcp
+title: Neo4j MCP
+version: "2"
+start_page: ROOT:index.adoc
+nav:
+  - modules/ROOT/content-nav.adoc
+asciidoc:
+  attributes:
+    page-tabs: tools@
+    page-tabs-index: 100
+    page-add-notes-module: ROOT

@@ -1,0 +1,66 @@
+= Neo4j MCP public documentation
+
+This directory contains the Antora sources for the https://neo4j.com/docs/mcp/current/[Neo4j MCP documentation].
+Edit the pages in `modules/ROOT/pages/` and the navigation in `modules/ROOT/content-nav.adoc`.
+
+== Build
+
+Install Node.js 24 and npm, then run from this directory:
+
+[source,shell]
+----
+npm ci
+npm run build
+----
+
+The generated HTML is written to `build/site/`.
+The build command exits when generation is complete; it does not start a server.
+
+== Preview locally
+
+After building, run `npm run serve` and open http://localhost:8000/docs/mcp/2/.
+For automatic rebuilds when the documentation changes, run `npm start` instead.
+If port 8000 is in use, set another port with `PORT=8001 npm run serve` (or `PORT=8001 npm start`).
+
+== Verify
+
+[source,shell]
+----
+npm run verify:preview -- --log-failure-level=warn
+npm run verify:publish -- --log-failure-level=warn
+----
+
+These commands replace the JSON build log at `build/log/log.json` and fail on warnings or errors.
+The publish playbook builds version 2 from this repository and version 1 from the `1.x` branch of `neo4j/docs-mcp`.
+Both builds download the Neo4j UI bundle; the publish build also requires access to GitHub for the legacy content.
+Running the publish build does not deploy or publish the site.
+
+== Hosted pull request previews
+
+The `Verify docs PR` workflow builds and verifies documentation changes.
+After it succeeds, `Deploy docs preview` publishes the generated site to
+`https://<owner>-<repo>-<pr-number>.surge.sh` and updates one bot comment on the PR.
+A failed build leaves the previous successful preview unchanged.
+Closing or merging the PR runs `Documentation Teardown`, which removes the site and updates the comment.
+Reopening the PR triggers a new build.
+
+To enable previews in a fork:
+
+. Enable GitHub Actions and allow the reusable workflows from `neo4j/docs-tools`.
+. Add the Actions repository secret `DOCS_SURGE_TOKEN`.
+. Put the three docs workflows under `.github/workflows/` and their helpers under `.github/scripts/` on the fork's default branch.
+  The deployment and teardown jobs deliberately load their helpers from that trusted branch, never from the PR.
+. Enable the three docs workflows. No additional preview label, repository variable, or personal access token is required.
+. Open a docs PR from a branch in the fork, targeting the fork's `main` branch.
+
+Only same-repository PRs are deployed; PRs originating in another fork can still be built and verified.
+Manual runs of `Verify docs PR` verify the build but do not deploy a preview.
+The generated HTML is public. Preview hosting is independent of official documentation publishing.
+
+Run the preview helper regression tests from the repository root:
+
+[source,shell]
+----
+node --test .github/scripts/docs-preview.test.cjs
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s .github/scripts -p 'test_docs_preview_archive.py'
+----

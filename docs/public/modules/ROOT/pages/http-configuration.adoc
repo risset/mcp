@@ -1,0 +1,67 @@
+[[http-configuration]]
+= HTTP configuration
+
+HTTP mode accepts the target URI and authentication credentials per request.
+The database is selected by the URL path in the form `/db/\{databaseName\}/mcp`.
+Do not set `NEO4J_MCP_URI`, `NEO4J_MCP_USERNAME`, `NEO4J_MCP_PASSWORD`, or `NEO4J_MCP_DATABASE` in HTTP mode because the URI and credentials come from HTTP request headers and the database comes from the URL path.
+See xref:http-mode.adoc[] for endpoint, header, and error details.
+
+Environment variables and equivalent command-line flags for HTTP mode:
+
+[cols="4*", options="header"]
+|===
+| Variable | Equivalent command-line flag | Description | Default
+| `NEO4J_MCP_HTTP_HOST` | `--http-host` | Server binding address | `127.0.0.1`
+| `NEO4J_MCP_HTTP_PORT` | `--http-port` | Server listening port | `80` (or `443` with TLS)
+| `NEO4J_MCP_HTTP_ALLOWED_ORIGINS` | `--http-allowed-origins` | CORS configuration (comma-separated list, `*` for all, empty to disable) | _empty (disabled)_
+| `NEO4J_MCP_HTTP_AUTH_HEADER_NAME` | `--http-auth-header-name` | Header used for per-request credentials (see xref:authentication.adoc#_custom_auth_header_name[Custom auth header name]) | `Authorization`
+| `NEO4J_MCP_HTTP_ALLOW_UNAUTHENTICATED_PING` | `--http-allow-unauthenticated-ping` | Allow JSON-RPC `ping` without credentials (see xref:authentication.adoc#_unauthenticated_endpoints[Unauthenticated endpoints]) | `false`
+|===
+
+
+== General configuration
+
+The following environment variables and equivalent command-line flags are general configuration options:
+
+[cols="4*", options="header"]
+|===
+| Variable | Equivalent command-line flag | Description | Default
+| `NEO4J_MCP_URI` | `--uri` | Connection URI; required for STDIO and provided per request in HTTP | _Required for STDIO; unset for HTTP_
+| `NEO4J_MCP_DATABASE` | `--database` | Database name; required for STDIO and selected in the HTTP URL | _Required for STDIO; unset for HTTP_
+| `NEO4J_MCP_READ_ONLY` | `--read-only` | Set to `true` to disable write tools (see xref:tools.adoc#_readonly_mode[Readonly mode]) | `false`
+| `NEO4J_MCP_TELEMETRY` | `--telemetry` | Set to `false` to disable telemetry (see xref:telemetry.adoc[]) | `true`
+| `NEO4J_MCP_LOG_LEVEL` | `--log-level` | Log level (see xref:logging.adoc[]) | `info`
+| `NEO4J_MCP_LOG_FORMAT` | `--log-format` | Log output format: `text` or `json` (see xref:logging.adoc#_log_formats[Log formats]) | `text`
+| `NEO4J_MCP_SCHEMA_SAMPLE_SIZE` | `--schema-sample-size` | Number of nodes to sample for schema inference | `100`
+| `NEO4J_MCP_TRANSPORT_MODE` | `--transport-mode` | Transport mode: `stdio` or `http` | `stdio`
+| `NEO4J_MCP_TOOLS` | `--tools` | Comma-separated list of tools advertised by the server; see xref:tools.adoc#_tool_filtering[Tool filtering] | All four tools
+| `NEO4J_MCP_REQUEST_TIMEOUT` | `--request-timeout` | Maximum time allowed for an MCP request; specify a number followed by a time unit, such as `45s` or `5m` | `3m` (maximum `30m`)
+|===
+
+[[request-timeout]]
+== Request timeout
+
+MCP requests, including tool calls and the handshake, are bounded by the configured timeout.
+Set `NEO4J_MCP_REQUEST_TIMEOUT` or `--request-timeout` as a number followed by a time unit:
+
+* `ms` for milliseconds, for example `500ms`
+* `s` for seconds, for example `45s`
+* `m` for minutes, for example `5m`
+
+You can combine units, for example `1m30s`.
+The default is `3m` and the maximum is `30m`.
+HTTP clients can use `X-Neo4j-MCP-Request-Timeout` to set a lower limit for an individual request.
+See xref:http-mode.adoc#request-timeout-header[`X-Neo4j-MCP-Request-Timeout`].
+
+
+== TLS/HTTPS configuration
+
+Configure TLS for secure HTTPS connections in HTTP mode:
+
+[cols="4*", options="header"]
+|===
+| Variable | Equivalent command-line flag | Description | Default
+| `NEO4J_MCP_HTTP_TLS_ENABLED` | `--http-tls-enabled` | Enable TLS/HTTPS | `false`
+| `NEO4J_MCP_HTTP_TLS_CERT_FILE` | `--http-tls-cert-file` | Path to TLS certificate file | _Required if TLS enabled_
+| `NEO4J_MCP_HTTP_TLS_KEY_FILE` | `--http-tls-key-file` | Path to TLS private key file | _Required if TLS enabled_
+|===

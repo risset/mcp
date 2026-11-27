@@ -233,4 +233,4 @@ Thank you for contributing to making Neo4j MCP better!
 
 ## Documentation
 
-If you would like to contribute to the Neo4j MCP documentation, checkout the [documentation source on GitHub](https://github.com/neo4j/docs-mcp).
+The public documentation lives in [docs/public](docs/public). See its [README](docs/public/README.adoc) for build and local preview instructions. Include documentation updates in the same pull request as the corresponding code changes.

@@ -1,0 +1,219 @@
+= HTTP Authentication
+
+When using HTTP transport mode, the Neo4j MCP server supports two authentication methods to accommodate different deployment scenarios:
+
+== Bearer token authentication
+
+Bearer token authentication enables seamless integration with *Neo4j Enterprise Edition* and *Neo4j Aura* environments that use Single Sign-On (SSO)/OAuth/OIDC for identity management.
+This method is ideal for:
+
+- *Enterprise deployments* with centralized identity providers (Okta, Azure AD, etc.)
+- *Neo4j Aura* databases configured with SSO
+- *Organizations* requiring OAuth 2.0 compliance
+- *Multi-factor authentication* scenarios
+
+The bearer token is obtained from your identity provider and passed to Neo4j for authentication.
+The MCP server acts as a pass-through, forwarding the token to Neo4j's authentication system.
+In HTTP mode, also send the `X-Neo4j-MCP-URI` header with every request.
+See xref:http-mode.adoc[] for the complete HTTP request requirements.
+
+. Start your Neo4j MCP server in HTTP mode:
++
+[source, bash]
+----
+export NEO4J_MCP_TRANSPORT_MODE="http"
+neo4j-mcp
+----
++
+The server starts on `http://127.0.0.1:80` by default.
++
+. Create or edit your `mcp.json` file, for example for Neo4j Enterprise or Aura with SSO/OAuth configured:
++
+[source, json]
+----
+{
+  "servers": {
+    "neo4j-http-bearer": {
+      "type": "http",
+      "url": "http://127.0.0.1:80/db/neo4j/mcp",
+      "headers": {
+        "X-Neo4j-MCP-URI": "bolt://localhost:7687",
+        "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+      }
+    }
+  }
+}
+----
++
+Replace the bearer token with your actual OAuth/SSO token from your identity provider.
+
+
+== Basic authentication
+
+Basic authentication with username and password is suitable for:
+
+- *Neo4j Community Edition*
+- *Development and testing* environments
+- *Direct database credentials* without SSO
+
+. Start your Neo4j MCP server in HTTP mode:
++
+[source, bash]
+----
+export NEO4J_MCP_TRANSPORT_MODE="http"
+neo4j-mcp
+----
++
+The server starts on `http://127.0.0.1:80` by default.
++
+. Create or edit your `mcp.json` file:
++
+[source, json]
+----
+{
+  "servers": {
+    "neo4j-http": {
+      "type": "http",
+      "url": "http://127.0.0.1:80/db/neo4j/mcp",
+      "headers": {
+        "X-Neo4j-MCP-URI": "bolt://localhost:7687",
+        "Authorization": "Basic BASE64_ENCODED_CREDENTIALS"
+      }
+    }
+  }
+}
+----
++
+. Generate the base64-encoded credentials:
++
+[source, bash]
+----
+echo -n "neo4j:password" | base64
+----
+
+== Select an authentication method
+
+*Use Bearer Token when:*
+
+- You're using Neo4j Enterprise Edition or Aura with SSO/OIDC/OAuth configured
+- You want to integrate with your organization's identity provider
+- You need to support OAuth 2.0 flows
+
+*Use Basic Auth when:*
+
+- You're using traditional username/password authentication
+- You're using Neo4j Community Edition
+- You have direct database credentials
+
+== Custom auth header name
+
+By default, the server reads credentials from the `Authorization` header.
+Some platforms reserve `Authorization` for their own infrastructure-level signing and require credentials to be sent under a different header name.
+You can override the header the server reads from by setting `NEO4J_MCP_HTTP_AUTH_HEADER_NAME` or the `--http-auth-header-name` CLI flag.
+
+Bearer vs Basic detection works the same way regardless of the header name — the server reads the credential value from whatever header you configure.
+
+The configured header name cannot be empty or whitespace.
+
+[NOTE]
+====
+AWS Bedrock AgentCore Runtime reserves `Authorization` for request signing.
+Use `NEO4J_MCP_HTTP_AUTH_HEADER_NAME=X-Amzn-Bedrock-AgentCore-Runtime-Custom-Authorization` to pass Neo4j credentials through AgentCore without conflicting with AWS signing.
+====
+
+[source, bash]
+----
+export NEO4J_MCP_TRANSPORT_MODE="http"
+export NEO4J_MCP_HTTP_AUTH_HEADER_NAME="X-Amzn-Bedrock-AgentCore-Runtime-Custom-Authorization"
+neo4j-mcp
+----
+
+Then configure your MCP client to send the custom header, for example in `mcp.json`:
+
+[source, json]
+----
+{
+  "servers": {
+    "neo4j-http": {
+      "type": "http",
+      "url": "http://127.0.0.1:80/db/neo4j/mcp",
+      "headers": {
+        "X-Neo4j-MCP-URI": "bolt://localhost:7687",
+        "X-Amzn-Bedrock-AgentCore-Runtime-Custom-Authorization": "Bearer <your-sso-token-here>"
+      }
+    }
+  }
+}
+----
+
+== Unauthenticated endpoints
+
+By default, all HTTP requests require valid credentials.
+One option lets you bypass authentication for the `ping` request that some platforms issue before the MCP session is established.
+
+*NEO4J_MCP_HTTP_ALLOW_UNAUTHENTICATED_PING (--http-allow-unauthenticated-ping, default=false)*:
+Allows JSON-RPC `ping` requests through without credentials.
+The MCP spec permits pings before initialization; platforms such as AWS AgentCore Runtime use them as liveness/health checks.
+
+[source, bash]
+----
+export NEO4J_MCP_TRANSPORT_MODE="http"
+export NEO4J_MCP_HTTP_ALLOW_UNAUTHENTICATED_PING="true"
+neo4j-mcp
+----
+
+[WARNING]
+====
+Enable this only when the deployment platform requires it.
+
+`tools/list` always requires authentication.
+====
+
+== Troubleshooting authentication
+
+=== Bearer Token Issues
+
+*401 Unauthorized - Token not accepted*
+
+- Verify your Neo4j instance is Enterprise Edition or Aura with OAuth/SSO configured
+- Community Edition does not support bearer token authentication - use Basic Auth instead
+- Confirm the token hasn't expired - bearer tokens typically have short lifespans (15-60 minutes)
+- Check with your identity provider to ensure the token is valid
+
+*Invalid token format*
+
+- Ensure the header format is exactly: `Authorization: Bearer YOUR_TOKEN`
+- No extra spaces before or after "Bearer"
+- Token should not be base64-encoded (unlike Basic Auth)
+
+*Neo4j rejects valid token*
+
+- Verify your Neo4j instance is configured to accept tokens from your identity provider
+- Check Neo4j server logs for specific authentication errors
+- Confirm the token issuer matches Neo4j's OAuth configuration
+
+== Basic auth issues
+
+*401 Unauthorized - Credentials not accepted*
+
+- Verify username and password are correct
+- Check that credentials are properly base64 encoded: `echo -n "user:pass" | base64`
+- Ensure the authorization header format is: `Authorization: Basic BASE64_STRING`
+
+*Empty credentials error*
+
+- Both username and password must be non-empty
+- The base64 string must decode to `username:password` format with both parts present
+
+== General issues
+
+*No authentication header provided*
+
+- HTTP mode requires authentication on every request except `ping` when `NEO4J_MCP_HTTP_ALLOW_UNAUTHENTICATED_PING` is enabled
+- Ensure your MCP client configuration includes the correct authentication header (default: `Authorization`; or the custom header if `NEO4J_MCP_HTTP_AUTH_HEADER_NAME` is set)
+
+*Connection refused / Cannot reach server*
+
+- Verify the Neo4j MCP server is running in HTTP mode
+- Check the server is listening on the correct host:port
+- Confirm firewall rules allow connections to the MCP server port

@@ -1,0 +1,1 @@
+This requires the Neo4j MCP server executable to be available on your system, installed using one of these options: xref:installation.adoc#_install_with_homebrew[Homebrew] or xref:installation.adoc#_manual_server_installation[manual installation].
