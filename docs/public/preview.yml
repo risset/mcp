@@ -6,7 +6,9 @@ site:
 content:
   sources:
   - url: ../..
-    start_path: docs/public
+    start_paths:
+    - docs/public
+    - docs/public/v1
     branches: HEAD
     exclude:
     - '!**/_includes/*'

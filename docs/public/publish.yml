@@ -1,4 +1,4 @@
-# Build the current docs alongside the legacy version maintained in docs-mcp.
+# Build both documentation versions from this repository.
 site:
   title: Neo4j MCP
   url: https://neo4j.com/docs
@@ -7,14 +7,10 @@ site:
 content:
   sources:
   - url: ../..
-    start_path: docs/public
+    start_paths:
+    - docs/public
+    - docs/public/v1
     branches: HEAD
-    exclude:
-    - '!**/_includes/*'
-    - '!**/readme.adoc'
-    - '!**/README.adoc'
-  - url: https://github.com/neo4j/docs-mcp.git
-    branches: '1.x'
     exclude:
     - '!**/_includes/*'
     - '!**/readme.adoc'

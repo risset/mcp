@@ -1,0 +1,47 @@
+[[index]]
+= Introduction
+:page-aliases: usage.adoc, tls-setup.adoc
+:description: This section describes Neo4j MCP.
+
+Neo4j MCP implements the Model Context Protocol (MCP), an open standard that lets applications connect to external data sources and tools.
+It bridges any MCP-compatible client and your Neo4j instance, giving that client direct, structured access to your graph database.
+
+AI assistants and agents are the most common MCP clients today, tools like Claude, Cursor, or VS Code with MCP support.
+But MCP itself doesn't require AI.
+Any application that implements the MCP client specification can connect to Neo4j through it, whether or not a model is involved.
+
+Neo4j MCP is built for:
+
+* Developers who want to query Neo4j conversationally while prototyping.
+* Data scientists and analysts exploring graph data without deep Cypher expertise.
+* Platform teams deploying shared tooling that needs structured, auditable access to Neo4j.
+* Application builders using Neo4j as a knowledge source or reasoning backend, including in multi-agent systems.
+
+A connected client can:
+
+* Explore your graph schema - discover node labels, relationship types, and property keys, and reason about your data model without knowing it in advance.
+* Run Cypher queries - execute reads and writes against your database from natural language prompts or programmatic calls.
+* Inspect and analyze data - retrieve nodes, relationships, and paths to answer questions, generate summaries, or feed other workflows.
+
+
+== Prerequisites
+
+* A running Neo4j database instance. Options include link:https://neo4j.com/product/auradb/[Aura], link:https://neo4j.com/download/[neo4j-desktop] or link:https://neo4j.com/deployment-center/#gdb-tab[self-managed].
+* The APOC plugin installed in the Neo4j instance.
+* Any MCP-compatible client, e.g. link:https://code.visualstudio.com/[VSCode] with link:https://code.visualstudio.com/docs/copilot/customization/mcp-servers[MCP support].
+
+
+=== Optional requirements
+
+If an optional dependency is missing, the server starts in an adaptive mode.
+For instance, if the Graph Data Science (GDS) library is not detected in your Neo4j installation, the server still launches but will automatically disable all GDS-related tools, such as `list-gds-procedures`.
+All other tools remain available.
+
+
+== Examples for natural language prompts
+
+Here are some example prompts you can try in Copilot or any other MCP client:
+
+- "What does my Neo4j instance contain? List all node labels, relationship types, and property keys."
+- "Find all Person nodes and their relationships in my Neo4j instance."
+- "Create a new User node with a name 'John' in my Neo4j instance."

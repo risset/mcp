@@ -1,0 +1,7 @@
+This requires the Neo4j MCP server to have been installed using PyPI. See xref:installation.adoc#_install_with_pypi[Install with PyPI].
+
+[NOTE]
+======
+On some systems the Python 3 interpreter is named `python3` instead of `python`.
+Use whichever is available in your environment.
+======

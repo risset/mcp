@@ -1,0 +1,47 @@
+[[installation]]
+= Installation
+:description: This section describes the installation of Neo4j MCP.
+
+== Install with PyPI
+[source, bash]
+----
+pip install neo4j-mcp-server
+----
+
+== Install with Homebrew
+[source, bash]
+----
+brew install neo4j-mcp
+----
+
+== Manual server installation
+
+Visit the release page for Neo4j MCP: https://github.com/neo4j/mcp/releases
+
+. Download the archive for your operating system.
+. Extract and place `neo4j-mcp` in a directory present in your PATH variables.
+
+Mac and Linux:
+
+[source, bash]
+----
+chmod +x neo4j-mcp
+sudo mv neo4j-mcp /usr/local/bin/
+----
+
+Windows:
+
+. Create a folder for the binary, for example `%LOCALAPPDATA%\Programs\neo4j-mcp`.
+. Move `neo4j-mcp.exe` into that folder.
+. Add the folder to your PATH: search for *Edit environment variables for your account* in the Start menu, select `Path` under *User variables*, click *Edit*, then *New*, and paste the folder path.
+
+Restart your terminal session for the PATH change to take effect.
+
+Verify the neo4j-mcp installation:
+
+[source, bash]
+----
+neo4j-mcp -v
+----
+
+This should print the installed version.

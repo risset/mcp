@@ -1,0 +1,1 @@
+See xref:mcp-for-aura.adoc#find-your-mcp-server-url[Find your MCP server URL] to retrieve your instance's URL.

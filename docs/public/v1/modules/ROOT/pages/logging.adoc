@@ -1,0 +1,77 @@
+= Logging
+
+`neo4j-mcp` implements a structured logging system using the log levels defined in the MCP specification.
+Logging can be configured using environment variables to control the verbosity and output format.
+
+== Log levels
+
+The following log levels are supported, as defined by the MCP specification (from most to least verbose):
+
+- `debug` - Detailed diagnostic information
+- `info` - General informational messages (default)
+- `notice` - Normal but significant events
+- `warning` - Warning messages
+- `error` - Error messages
+- `critical` - Critical conditions
+- `alert` - Action must be taken immediately
+- `emergency` - System is unusable
+
+Set the log level using the `NEO4J_LOG_LEVEL` environment variable.
+The log level is set at startup and remains fixed for the lifetime of the server process.
+
+== Log formats
+
+Two output formats are available:
+
+- `text` (default) - Human-readable text format
+- `json` - Structured JSON format for log parsing and analysis
+
+Set the log format using the `NEO4J_LOG_FORMAT` environment variable.
+
+== Security features
+
+The logging system automatically redacts sensitive information including:
+
+- Passwords
+- Authentication tokens
+- Connection credentials
+
+This ensures that sensitive data does not leak into log files.
+
+== Configuration examples
+
+Enable debug logging with text output:
+
+[source, json]
+----
+{
+  "mcpServers": {
+    "neo4j-mcp": {
+      "command": "neo4j-mcp",
+      "env": {
+        "NEO4J_URI": "bolt://localhost:7687",
+        "NEO4J_LOG_LEVEL": "debug",
+        "NEO4J_LOG_FORMAT": "text"
+      }
+    }
+  }
+}
+----
+
+Enable JSON logging for automated parsing:
+
+[source, json]
+----
+{
+  "mcpServers": {
+    "neo4j-mcp": {
+      "command": "neo4j-mcp",
+      "env": {
+        "NEO4J_URI": "bolt://localhost:7687",
+        "NEO4J_LOG_LEVEL": "info",
+        "NEO4J_LOG_FORMAT": "json"
+      }
+    }
+  }
+}
+----

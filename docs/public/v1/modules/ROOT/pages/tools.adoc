@@ -1,0 +1,36 @@
+= Tools
+
+Provided tools:
+
+[cols="4*", options="header"]
+|===
+| Tool                 | ReadOnly | Purpose                                        | Notes
+| `get-schema`         | Yes      | Introspect labels, relationship types, property keys | Provide valuable context to the client LLMs.
+| `read-cypher`        | Yes      | Execute arbitrary Cypher (read mode)           | Rejects writes, schema/admin operations, and PROFILE queries.
+| `write-cypher`       | No       | Execute arbitrary Cypher (write mode)          | Caution: LLM-generated queries can cause harm. Use only in development environments. Disabled if `NEO4J_READ_ONLY=true`.
+| `list-gds-procedures` | Yes     | List GDS procedures available in the instance  | Help the client LLM to have better visibility on available GDS procedures.
+|===
+
+== Readonly mode
+
+Enable readonly mode by setting the `NEO4J_READ_ONLY` environment variable to `true` (for example, `"NEO4J_READ_ONLY": "true"`).
+Accepted values are `true` or `false` (default: `false`).
+
+You can also override this setting using the `--neo4j-read-only` CLI flag:
+
+[source, bash]
+----
+neo4j-mcp --neo4j-uri "bolt://localhost:7687" --neo4j-username "neo4j" --neo4j-password "password" --neo4j-read-only true
+----
+
+When enabled, write tools (such as `write-cypher`) are not exposed to clients.
+
+
+== Query classification
+
+The `read-cypher` tool performs an extra round-trip to the Neo4j database to guarantee read-only operations.
+
+- **Write operations**: `CREATE`, `MERGE`, `DELETE`, `SET`, etc., are treated as non-read queries.
+- **Admin queries**: Commands like `SHOW USERS`, `SHOW DATABASES`, etc., are treated as non-read queries and must use `write-cypher` instead.
+- **Profile queries**: `EXPLAIN PROFILE` queries are treated as non-read queries, even if the underlying statement is read-only.
+- **Schema operations**: `CREATE INDEX`, `DROP CONSTRAINT`, etc., are treated as non-read queries.

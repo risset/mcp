@@ -1,0 +1,24 @@
+* *Neo4j MCP*
+
+* xref:index.adoc[]
+* xref:quickstart.adoc[]
+* xref:tools.adoc[]
+* xref:security.adoc[]
+
+* *Setup*
+
+* xref:mcp-for-aura.adoc[]
+* xref:installation.adoc[]
+* xref:client-configuration.adoc[]
+* xref:authentication.adoc[]
+* xref:configuration.adoc[]
+* xref:startup-checks.adoc[]
+
+* *Monitoring*
+
+* xref:logging.adoc[]
+* xref:telemetry.adoc[]
+
+* *Versions and support*
+
+* xref:known-issues.adoc[]

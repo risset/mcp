@@ -1,0 +1,19 @@
+= Startup checks
+
+The server performs several pre-flight checks at startup to ensure your environment is correctly configured.
+
+See xref:installation.adoc[Installation] for configuration instructions for both modes.
+
+== STDIO mode - mandatory requirements
+
+In STDIO mode, the server verifies the requirements below.
+If any of these checks fail (e.g., due to an invalid configuration, incorrect credentials, or a missing APOC installation), the server will not start:
+
+- A valid connection to your Neo4j instance.
+- The ability to execute queries.
+- The presence of the APOC plugin.
+
+== HTTP mode - verification skipped
+
+In HTTP mode, startup verification checks are skipped because credentials come from per-request Basic Auth headers.
+The server starts immediately without connecting to Neo4j at startup.

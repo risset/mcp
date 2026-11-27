@@ -1,0 +1,85 @@
+[[configuration]]
+= Configuration reference
+
+`neo4j-mcp` requires explicit configuration to connect to your Neo4j instance.
+Configuration can be provided through environment variables or command-line flags.
+When both are set for the same option, the command-line flag takes precedence over the environment variable.
+
+[[transport-modes]]
+== Transport modes
+
+The server supports two transport modes:
+
+- **STDIO** (default): Traditional standard input/output mode for desktop clients
+- **HTTP**: Web-based mode for multi-tenant scenarios and web clients
+
+Set the transport mode using the `NEO4J_TRANSPORT_MODE` environment variable or `--neo4j-transport-mode` flag.
+
+=== STDIO mode
+
+In STDIO mode, credentials are provided via environment variables (`NEO4J_USERNAME` and `NEO4J_PASSWORD`).
+The server validates connectivity and APOC availability at startup.
+
+=== HTTP mode
+
+In HTTP mode, the server operates statelessly and accepts per-request authentication credentials (Bearer Token or Basic Authentication).
+Also see xref:authentication.adoc#_bearer_token_authentication[Authentication -> Bearer token authentication] and xref:authentication.adoc#_basic_authentication[Authentication -> Basic authentication].
+
+Do NOT set `NEO4J_USERNAME` or `NEO4J_PASSWORD` environment variables in HTTP mode, as credentials come from per-request authentication headers.
+
+
+== General configuration
+
+The following environment variables and equivalent command-line flags are general configuration options:
+
+[cols="4*", options="header"]
+|===
+| Variable                           | Equivalent command-line flag                    | Description                                                | Default
+| `NEO4J_URI`                        | `--neo4j-uri`                                   | Connection URI (e.g., `bolt://localhost:7687`)             | _Required_
+| `NEO4J_DATABASE`                   | `--neo4j-database`                              | Database name                                              | `neo4j`
+| `NEO4J_READ_ONLY`                  | `--neo4j-read-only`                             | Set to `true` to disable write tools (see xref:tools.adoc#_readonly_mode[Readonly mode])                      | `false`
+| `NEO4J_TELEMETRY`                  | `--neo4j-telemetry`                             | Set to `false` to disable telemetry (see xref:telemetry.adoc[]) | `true`
+| `NEO4J_LOG_LEVEL`                  | `--neo4j-log-level`                             | Log level (see xref:logging.adoc[])                        | `info`
+| `NEO4J_LOG_FORMAT`                 | `--neo4j-log-format`                            | Log output format: `text` or `json` (see xref:logging.adoc#_log_formats[Log formats]) | `text`
+| `NEO4J_SCHEMA_SAMPLE_SIZE`         | `--neo4j-schema-sample-size`                    | Number of nodes to sample for schema inference             | 100
+| `NEO4J_MCP_TRANSPORT`              | `--neo4j-mcp-transport`                         | This option is deprecated. Please use NEO4J_TRANSPORT_MODE |
+| `NEO4J_TRANSPORT_MODE`             | `--neo4j-transport-mode`                        | Transport mode: `stdio` or `http`                          | `stdio`
+|===
+
+=== STDIO configuration
+
+Additional environment variables and equivalent command-line flags for STDIO mode:
+
+[cols="4*", options="header"]
+|===
+| Variable             | Equivalent command-line flag | Description                      | Default
+| `NEO4J_USERNAME`     | `--neo4j-username`           | Neo4j username (STDIO mode only) | _Required for STDIO_
+| `NEO4J_PASSWORD`     | `--neo4j-password`           | Neo4j password (STDIO mode only) | _Required for STDIO_
+|===
+
+=== HTTP configuration
+
+Additional environment variables and equivalent command-line flags for HTTP mode:
+
+[cols="4*", options="header"]
+|===
+| Variable                         | Equivalent command-line flag       | Description                                                              | Default
+| `NEO4J_MCP_HTTP_HOST`            | `--neo4j-http-host`                | Server binding address                                                   | `127.0.0.1`
+| `NEO4J_MCP_HTTP_PORT`            | `--neo4j-http-port`                | Server listening port                                                    | `80` (or `443` with TLS)
+| `NEO4J_MCP_HTTP_ALLOWED_ORIGINS`              | `--neo4j-mcp-http-allowed-origins`              | CORS configuration (comma-separated list, `*` for all, empty to disable)                                                                                    | _empty (disabled)_
+| `NEO4J_HTTP_AUTH_HEADER_NAME`                 | `--neo4j-http-auth-header-name`                 | HTTP header the server reads credentials from (see xref:authentication.adoc#_custom_auth_header_name[Custom auth header name])                              | `Authorization`
+| `NEO4J_HTTP_ALLOW_UNAUTHENTICATED_PING`       | `--neo4j-http-allow-unauthenticated-ping`       | Allow JSON-RPC `ping` requests without credentials (see xref:authentication.adoc#_unauthenticated_endpoints[Unauthenticated endpoints])                     | `false`
+| `NEO4J_HTTP_ALLOW_UNAUTHENTICATED_TOOLS_LIST` | `--neo4j-http-allow-unauthenticated-tools-list` | Allow `tools/list` requests without credentials (see xref:authentication.adoc#_unauthenticated_endpoints[Unauthenticated endpoints])                        | `false`
+|===
+
+==== TLS/HTTPS configuration
+
+Configure TLS for secure HTTPS connections in HTTP mode:
+
+[cols="4*", options="header"]
+|===
+| Variable                       | Equivalent command-line flag | Description                  | Default
+| `NEO4J_MCP_HTTP_TLS_ENABLED`   | `--neo4j-http-tls-enabled`   | Enable TLS/HTTPS             | `false`
+| `NEO4J_MCP_HTTP_TLS_CERT_FILE` | `--neo4j-http-tls-cert-file` | Path to TLS certificate file | _Required if TLS enabled_
+| `NEO4J_MCP_HTTP_TLS_KEY_FILE`  | `--neo4j-http-tls-key-file`  | Path to TLS private key file | _Required if TLS enabled_
+|===

@@ -12,7 +12,9 @@
     "build:preview": "antora preview.yml --stacktrace --log-format=pretty",
     "build:publish": "npm run clean && antora publish.yml --stacktrace --log-format=pretty",
     "verify:preview": "rm -f ./build/log/log.json && antora --stacktrace --fetch preview.yml --log-format=json --log-level=info --log-file ./build/log/log.json",
-    "verify:publish": "rm -f ./build/log/log.json && antora --stacktrace --fetch publish.yml --log-format=json --log-level=info --log-file ./build/log/log.json"
+    "verify:publish": "rm -f ./build/log/log.json && antora --stacktrace --fetch publish.yml --log-format=json --log-level=info --log-file ./build/log/log.json",
+    "postverify:preview": "node scripts/check-built-versions.js",
+    "postverify:publish": "node scripts/check-built-versions.js"
   },
   "keywords": [
     "antora",
@@ -40,6 +42,8 @@
     "watch": [
       "modules/**",
       "antora.yml",
+      "v1/modules/**",
+      "v1/antora.yml",
       "preview.yml",
       "publish.yml"
     ],
